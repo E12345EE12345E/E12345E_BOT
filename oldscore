@@ -1,0 +1,126 @@
+public class Score {
+    public static double getHoleWeight(int a) {
+        return 20*a;
+    }
+
+    public static double getWeightedHoleWeight(int a) {
+        return a*a*(a-1)*(a-2);
+    }
+
+    public static double getHorizontalGapWeight(int a) {
+        return 10*a*(a-1); // 0:0, 1:0, 2:20, 3:60, 4:120
+    }
+
+    public static double getHeightWeight(int a) {
+        if (a>Consts.BoardHeight-1) { return 100*a; }
+        return 4*((0.25*a*a)-a); // 0:0, 1:-3, 2:-4, 3:-3, 4:0, 5:5, 6:12
+    }
+
+    public static double getHeightDifferenceWeight(int a) {
+        return 2*a*a;
+    }
+
+    public static double getAllClearWeight(Boolean allCleared) {
+        return (allCleared ? -1000 : 0);
+    }
+
+    public static double getTSDslotScore(int a, int nearestT) {
+        if (nearestT == 0) { return (a == 0 ? -100 : -24); }
+        if (a>1) { return -24; }
+        return (8.0*nearestT*nearestT-120.0)*a;
+    }
+
+    public static double getTSTslotScore(int a, int b, int nearestT) {
+        if (nearestT == 0 && a > 0) { return -44; }
+        if (a>1) { return -24; }
+        return (16.0*nearestT*nearestT-240.0)*a + getTSDslotScore(b, nearestT);
+    }
+
+    public static double getLineClearedWeight(int a) {
+        return -10.0*a*(a-3);
+    }
+
+    public static double getAttackWeight(int a) {
+        return -20*a*a;
+    }
+
+    public static double getComboWeight(int a) {
+        return -10*a;
+    }
+
+    public static double getBreakB2bWeight(Boolean a) {
+        return (a ? 60 : 0);
+    }
+
+    public static double getTspinWeight(int a, int b) {
+        if (a == 1) {
+            return -80*b*b;
+        }
+        if (a == 2) {
+            return -10*b*b*b*b;
+        }
+        return 0;
+    }
+
+    public static double getWasteTWeight(Boolean a) {
+        return (a ? 100 : 0);
+    }
+
+    public static double scoreBoard(Board board) {
+        double finalScore = 0;
+
+        // Vertical Hole Score
+        finalScore += getHoleWeight(board.countHoles());
+        for (int x=0; x<Consts.BoardWidth; x++) {
+            finalScore += getWeightedHoleWeight(board.countWeightedHoles(x));
+        }
+
+        // Horizontal Gap Score
+        int holeCount = 0;
+        Boolean tileFilled = true;
+        for (int y=0; y<Consts.BoardHeight*2; y++) {
+            holeCount = 0;
+            tileFilled = true;
+            for (int x=0; x<Consts.BoardWidth; x++) {
+                if (board.tileOccupied(new PiecePos(x, y))) {
+                    tileFilled = true;
+                } else {
+                    if (tileFilled) {
+                        holeCount += 1;
+                        tileFilled = false;
+                    }
+                }
+            }
+            finalScore += getHorizontalGapWeight(holeCount);
+        }
+
+        // Height Score
+        finalScore += getHeightWeight(board.getTallestPoint());
+
+        // Height Differences Score
+        int[] a = board.getColumnHeights();
+        for (int x=0; x<Consts.BoardWidth-1; x++) {
+            getHeightDifferenceWeight(Math.abs(a[x] - a[x+1]));
+        }
+
+        // All Clear Score
+        finalScore += getAllClearWeight(board.getTallestPoint() == 0);
+
+        return finalScore;
+    }
+
+    public static double scoreTotal(Game game) {
+        double finalScore = 0;
+
+        finalScore += getTSDslotScore(game.board.findPatterns(Consts.TSD_PATTERN, true),game.closestPiece(6));
+        finalScore += getTSTslotScore(game.board.findPatterns(Consts.TST_PATTERN, true),game.board.findPatterns(Consts.PARTIAL_TST_PATTERN, true),game.closestPiece(6));
+        finalScore += getLineClearedWeight(game.mostRecentLinesCleared);
+        finalScore += getAttackWeight(game.mostRecentLinesSent);
+        finalScore += getComboWeight(game.combo);
+        finalScore += getBreakB2bWeight(game.mostRecentLineClearBrokeB2B);
+        finalScore += getTspinWeight(game.mostRecentTspinType, game.mostRecentLinesCleared);
+        finalScore += getWasteTWeight(game.mostRecentPlacedPiece == 6 && game.mostRecentTspinType == 0);
+        
+        return scoreBoard(game.board) + finalScore;
+    }
+}
