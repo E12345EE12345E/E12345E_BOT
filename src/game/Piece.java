@@ -31,13 +31,13 @@ public class Piece {
 
     public static PiecePos pieceSpawnPosition(int id) {
         switch (id) {
-            case 1: return new PiecePos(Consts.BoardWidth/2 - 0.5, Consts.BoardHeight - 0.5);
-            case 2: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight);
-            case 3: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight);
-            case 4: return new PiecePos(Consts.BoardWidth/2 - 0.5, Consts.BoardHeight - 0.5);
-            case 5: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight);
-            case 6: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight);
-            case 7: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight);
+            case 1: return new PiecePos(Consts.BoardWidth/2 - 0.5, Consts.BoardHeight - 1.5);
+            case 2: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight - 1);
+            case 3: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight - 1);
+            case 4: return new PiecePos(Consts.BoardWidth/2 - 0.5, Consts.BoardHeight - 1.5);
+            case 5: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight - 1);
+            case 6: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight - 1);
+            case 7: return new PiecePos(Consts.BoardWidth/2 - 1, Consts.BoardHeight - 1);
         }
         return new PiecePos(1, 20);
     }

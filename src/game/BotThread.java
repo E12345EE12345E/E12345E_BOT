@@ -17,6 +17,5 @@ public class BotThread extends Thread {
     public void run() {
         if (garbageamount == 0) garbageamount = game.garbage.amount;
         retval = Bot.compute3(game, depth, cullAmount);
-        try {Thread.sleep(0);} catch (InterruptedException e) {}
     }
 }

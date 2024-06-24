@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
+import java.io.*;
+
 public class Renderer {
     public static Game game;
     public static Game otherGame;
@@ -16,113 +18,188 @@ public class Renderer {
     private static boolean alreadyindasright;
     private static BotThread bot;
     private static BotThread plr1bot;
+    private static int garbagetimer;
+    private static int[] garbagePattern = {12};
+    private static int garbagePatternDelay = 3000;
+    private static int garbagePatternNum = 0;
+    private static boolean firsttick = true;
+    private static boolean controlsettingmode;
+    private static int controlsettingnum;
     public static void tick(Graphics2D g) {
         long currenttime = System.currentTimeMillis();
-        if (Consts.Bot1v1) {
-            boolean garbagereset = false;
-            if (bot != null && !bot.isAlive()) {
-                if (otherGame.garbage.amount > bot.garbageamount && bot.garbageamount < Consts.GarbageCap) {
-                    garbagereset = true;
-                } else {
-                    if (bot.retval != null) otherGame.doMovement(bot.retval, 1);
-                    if (otherGame.mostRecentLinesSent > 0) {
-                        GarbageHandler.sendGarbage(otherGame, game, otherGame.mostRecentLinesSent);
-                        otherGame.mostRecentLinesSent = 0;
-                    }
-                }
-            }
-            if (bot == null || !bot.isAlive()) {
-                bot = new BotThread(otherGame.getGame(), otherGame.board.getAverageHeight()>8?3:5, otherGame.board.getAverageHeight()>8?100:150);
-                if (garbagereset) {
-                    bot.garbageamount = Integer.MAX_VALUE;
-                    System.out.println("garbage reset");
-                }
-                bot.start();
-            }
-        }
-        if (Consts.Player1IsBot) {
-            if (plr1bot != null && !plr1bot.isAlive()) {
-                game.doMovement(plr1bot.retval, 1);
-                if (game.mostRecentLinesSent > 0) {
-                    GarbageHandler.sendGarbage(game, otherGame, game.mostRecentLinesSent);
-                    game.mostRecentLinesSent = 0;
-                }
-            }
-            if (plr1bot == null || !plr1bot.isAlive()) {
-                plr1bot = new BotThread(game.getGame(), game.board.getAverageHeight()>8?3:4, game.board.getAverageHeight()>8?100:150);
-                plr1bot.start();
-            }
-        } else {
-            if (keysHeld.contains(Controls.LEFT) || keysHeld.contains(Controls.RIGHT)) {
-                dastimer += currenttime-oldtime;
-            } else {
-                dastimer = 0;
-                alreadyindasleft = false;
-                alreadyindasright = false;
-            }
-            for (int i=0; i<keysHeld.size();) {
-                int keyCode = keysHeld.get(i);
-                if (keyCode == Controls.LEFT) {
-                    if (!alreadyindasleft) {
-                        game.moveLeft();
-                        alreadyindasleft = true;
-                    }
-                    if (dastimer >= Controls.DAS) {
-                        while (game.moveLeft()) {}
-                    }
-                    i++;
-                } else if (keyCode == Controls.RIGHT) {
-                    if (!alreadyindasright) {
-                        game.moveRight();
-                        alreadyindasright = true;
-                    }
-                    if (dastimer >= Controls.DAS) {
-                        while (game.moveRight()) {}
-                    }
-                    i++;
-                } else if (keyCode == Controls.HARDDROP) {
-                    game.hardDrop();
-                    if (game.mostRecentLinesSent > 0) {
-                        if (Consts.Bot1v1) {
-                            GarbageHandler.sendGarbage(game, otherGame, game.mostRecentLinesSent);
-                        } else {
-                            Game tempGame = new Game();
-                            GarbageHandler.sendGarbage(game, tempGame, game.mostRecentLinesSent);
-                        }
-                        game.mostRecentLinesSent = 0;
-                    }
-                    keysHeld.remove(i);
-                } else if (keyCode == Controls.SOFTDROP) {
-                    game.instantSoftDrop();
-                    i++;
-                } else if (keyCode == Controls.CCW) {
-                    game.rotateCCW();
-                    keysHeld.remove(i);
-                } else if (keyCode == Controls.CW) {
-                    game.rotateCW();
-                    keysHeld.remove(i);
-                } else if (keyCode == Controls.TURN180) {
-                    game.rotate180();
-                    keysHeld.remove(i);
-                } else if (keyCode == Controls.HOLD) {
-                    game.holdPiece();
-                    keysHeld.remove(i);
-                } else if (keyCode == Controls.RESET) {
-                    game.reset();
-                    startTime = System.currentTimeMillis();
-                    keysHeld.remove(i);
-                } else {
-                    i++;
-                }
+
+        if (firsttick) {
+            if (!Controls.copyControls()) {
+                controlsettingmode = true;
             }
         }
 
-        drawGame(g, game, new Vec2(5,2));
-        if (otherGame != null) {
-            drawGame(g, otherGame, new Vec2(Consts.BoardWidth+15,2));
+        if (controlsettingmode) {
+            for (int i=0; i<keysHeld.size();) {
+                int k = keysHeld.remove(i);
+                switch (controlsettingnum) {
+                    case 0: Controls.HARDDROP = k; break;
+                    case 1: Controls.SOFTDROP = k; break;
+                    case 2: Controls.LEFT = k; break;
+                    case 3: Controls.RIGHT = k; break;
+                    case 4: Controls.CCW = k; break;
+                    case 5: Controls.CW = k; break;
+                    case 6: Controls.TURN180 = k; break;
+                    case 7: Controls.HOLD = k; break;
+                    case 8: Controls.RESET = k; break;
+                }
+                controlsettingnum++;
+                break;
+            }
+
+            if (controlsettingnum > 8) {
+                controlsettingmode = false;
+                Controls.setControls(Controls.HARDDROP, Controls.SOFTDROP, Controls.LEFT, Controls.RIGHT, Controls.CCW, Controls.TURN180, Controls.CW, Controls.HOLD, Controls.RESET);
+            }
+
+            g.setTransform(Draw.getBaseTransform());
+            g.setStroke(new BasicStroke());
+            g.setColor(Color.WHITE);
+
+            int uwidth = (int)World.get().pixelsPerUnit;
+
+            g.setPaint(Color.RED);
+            Vec2 s = World.get().getCanvasSize();
+            g.fillRect(uwidth*4, uwidth*4, (int)s.x-uwidth*8, (int)s.y-uwidth*8);
+            String button = "_";
+            switch (controlsettingnum) {
+                case 0: button = "HARD DROP"; break;
+                case 1: button = "SOFT DROP"; break;
+                case 2: button = "LEFT"; break;
+                case 3: button = "RIGHT"; break;
+                case 4: button = "ROTATE CCW"; break;
+                case 5: button = "ROTATE CW"; break;
+                case 6: button = "ROTATE 180"; break;
+                case 7: button = "HOLD"; break;
+                case 8: button = "RESET GAME"; break;
+            }
+            Draw.drawTextCentered(g, "SET [" + button + "] KEYBIND", new Vec2(s.x/uwidth/2,-s.y/uwidth/2), uwidth/20.0, Draw.FontSize.XLARGE, Color.WHITE);
+        } else {
+            if (Consts.Bot1v1) {
+                boolean garbagereset = false;
+                if (bot != null && !bot.isAlive()) {
+                    if (otherGame.garbage.amount > bot.garbageamount && bot.garbageamount < Consts.GarbageCap) {
+                        garbagereset = true;
+                    } else {
+                        if (bot.retval != null) otherGame.doMovement(bot.retval, 1);
+                        if (otherGame.mostRecentLinesSent > 0) {
+                            GarbageHandler.sendGarbage(otherGame, game, otherGame.mostRecentLinesSent);
+                            otherGame.mostRecentLinesSent = 0;
+                        }
+                    }
+                }
+                if (bot == null || !bot.isAlive()) {
+                    bot = new BotThread(otherGame.getGame(), otherGame.board.getAverageHeight()+otherGame.garbage.amount>8?3:4, otherGame.board.getAverageHeight()+otherGame.garbage.amount>8?40:80);
+                    //bot = new BotThread(otherGame.getGame(), 2, otherGame.board.getAverageHeight()>8?10:20);
+                    if (garbagereset) {
+                        bot.garbageamount = Integer.MAX_VALUE;
+                        System.out.println("garbage reset");
+                    }
+                    bot.start();
+                }
+            } else {
+                garbagetimer += currenttime-oldtime;
+                if (garbagetimer > garbagePatternDelay) {
+                    garbagetimer -= garbagePatternDelay;
+                    Game tempGame = new Game();
+                    GarbageHandler.sendGarbage(tempGame, game, garbagePattern[garbagePatternNum]);
+                    garbagePatternNum++;
+                    if (garbagePatternNum == garbagePattern.length) garbagePatternNum = 0;
+                }
+            }
+            if (Consts.Player1IsBot) {
+                if (plr1bot != null && !plr1bot.isAlive()) {
+                    game.doMovement(plr1bot.retval, 1);
+                    if (game.mostRecentLinesSent > 0) {
+                        GarbageHandler.sendGarbage(game, Consts.Bot1v1?otherGame:new Game(), game.mostRecentLinesSent);
+                        game.mostRecentLinesSent = 0;
+                    }
+                }
+                if (plr1bot == null || !plr1bot.isAlive()) {
+                    plr1bot = new BotThread(game.getGame(), game.board.getAverageHeight()>8?3:4, game.board.getAverageHeight()>8?100:150);
+                    plr1bot.start();
+                }
+            } else {
+                if (keysHeld.contains(Controls.LEFT) || keysHeld.contains(Controls.RIGHT)) {
+                    dastimer += currenttime-oldtime;
+                } else {
+                    dastimer = 0;
+                    alreadyindasleft = false;
+                    alreadyindasright = false;
+                }
+                for (int i=0; i<keysHeld.size();) {
+                    int keyCode = keysHeld.get(i);
+                    if (keyCode == Controls.LEFT) {
+                        if (!alreadyindasleft) {
+                            game.moveLeft();
+                            alreadyindasleft = true;
+                        }
+                        if (dastimer >= Controls.DAS) {
+                            while (game.moveLeft()) {}
+                        }
+                        i++;
+                    } else if (keyCode == Controls.RIGHT) {
+                        if (!alreadyindasright) {
+                            game.moveRight();
+                            alreadyindasright = true;
+                        }
+                        if (dastimer >= Controls.DAS) {
+                            while (game.moveRight()) {}
+                        }
+                        i++;
+                    } else if (keyCode == Controls.HARDDROP) {
+                        game.hardDrop();
+                        if (game.mostRecentLinesSent > 0) {
+                            if (Consts.Bot1v1) {
+                                GarbageHandler.sendGarbage(game, otherGame, game.mostRecentLinesSent);
+                            } else {
+                                Game tempGame = new Game();
+                                GarbageHandler.sendGarbage(game, tempGame, game.mostRecentLinesSent);
+                            }
+                            game.mostRecentLinesSent = 0;
+                        }
+                        keysHeld.remove(i);
+                    } else if (keyCode == Controls.SOFTDROP) {
+                        game.instantSoftDrop();
+                        i++;
+                    } else if (keyCode == Controls.CCW) {
+                        game.rotateCCW();
+                        keysHeld.remove(i);
+                    } else if (keyCode == Controls.CW) {
+                        game.rotateCW();
+                        keysHeld.remove(i);
+                    } else if (keyCode == Controls.TURN180) {
+                        game.rotate180();
+                        keysHeld.remove(i);
+                    } else if (keyCode == Controls.HOLD) {
+                        game.holdPiece();
+                        keysHeld.remove(i);
+                    } else if (keyCode == Controls.RESET) {
+                        game.reset();
+                        if (Consts.Bot1v1) otherGame.reset();
+                        startTime = System.currentTimeMillis();
+                        garbagePatternNum = 0;
+                        garbagetimer = 0;
+                        keysHeld.remove(i);
+                    } else {
+                        i++;
+                    }
+                }
+            }
+    
+            drawGame(g, game, new Vec2(5,2));
+            if (otherGame != null) {
+                drawGame(g, otherGame, new Vec2(Consts.BoardWidth+15,2));
+            }
         }
 
         oldtime = currenttime;
+        firsttick = false;
     }
     public static void keyPressed(KeyEvent event) {
         int keyCode = event.getKeyCode();
@@ -244,15 +321,68 @@ public class Renderer {
 }
 
 class Controls {
-    protected static final int HARDDROP = 87;
-    protected static final int SOFTDROP = 83;
-    protected static final int LEFT = 65;
-    protected static final int RIGHT = 68;
-    protected static final int CCW = 75; // 37 left arrow
-    protected static final int TURN180 = 79; // 38 up arrow
-    protected static final int CW = 59; // 39 right arrow
-    protected static final int HOLD = 16;
-    protected static final int RESET = 82;
+    protected static int HARDDROP = 87;
+    protected static int SOFTDROP = 83;
+    protected static int LEFT = 65;
+    protected static int RIGHT = 68;
+    protected static int CCW = 37; // 37 left arrow, 75 k
+    protected static int TURN180 = 38; // 38 up arrow, 79 o
+    protected static int CW = 39; // 39 right arrow, 59 ;
+    protected static int HOLD = 16;
+    protected static int RESET = 82;
 
-    protected static final int DAS = 100;
+    protected static int DAS = 100;
+
+    private static File file = new File("controls.txt");
+
+    protected static boolean copyControls() {
+        if (!file.exists()) return false;
+        try {
+            Scanner s = new Scanner(file);
+            HARDDROP = s.nextInt();
+            SOFTDROP = s.nextInt();
+            LEFT = s.nextInt();
+            RIGHT = s.nextInt();
+            CCW = s.nextInt();
+            TURN180 = s.nextInt();
+            CW = s.nextInt();
+            HOLD = s.nextInt();
+            RESET = s.nextInt();
+            if (s.hasNextInt()) {
+                DAS = s.nextInt();
+            }
+            s.close();
+        } catch (FileNotFoundException e) {
+            return false;
+        } catch (Exception e) {
+            resetControls();
+            return false;
+        }
+        return true;
+    }
+
+    protected static boolean setControls(int hd, int sd, int l, int r, int ccw, int t180, int cw, int hold, int rs) {
+        try {
+            FileWriter fw = new FileWriter(file);
+            fw.write(hd + " " + sd + " " + l + " " + r + " " + ccw + " " + t180 + " " + cw + " " + hold + " " + rs);
+            fw.close();
+            copyControls();
+        } catch (IOException e) {
+            resetControls();
+            return false;
+        }
+        return true;
+    }
+
+    protected static void resetControls() {
+        HARDDROP = 87;
+        SOFTDROP = 83;
+        LEFT = 65;
+        RIGHT = 68;
+        CCW = 37;
+        TURN180 = 38;
+        CW = 39;
+        HOLD = 16;
+        RESET = 82;
+    }
 }

@@ -33,7 +33,7 @@ public class LongMovesThread extends Thread {
                     moveList += "d";
                 }
             }
-            newGame.instantSoftDrop();
+            newGame.fastInstantSoftDrop();
             moveList += "s";
             moveAmount++;
             if (repeat) {

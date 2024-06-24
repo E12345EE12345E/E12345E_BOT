@@ -77,7 +77,7 @@ public class Score {
     public static double getTspinWeight(int a, int b) {
         if (a == 1) {
             if (b == 1) return -80;
-            if (b == 2) return -160;
+            if (b == 2) return -200;
             if (b == 3) return -240;
         }
         if (a == 2) {

@@ -6,7 +6,7 @@ public class Consts {
     public static int DisplayQueueLength = 6;
     public static int GarbageCap = 8;
     public static Boolean Use7Bag = true;
-    public static Boolean Bot1v1 = true;
+    public static Boolean Bot1v1 = false;
     public static Boolean Player1IsBot = false;
 
     public static Boolean PrintBotMoves = false; // will introduce more delay

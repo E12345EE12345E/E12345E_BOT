@@ -210,8 +210,30 @@ public class Game {
         return count - 1;
     }
 
+    public int fastInstantSoftDrop() { // 2x speed on normal case, 0.98x speed on bad case
+        int[] heights = board.getColumnHeights();
+        PiecePos[] pos = Piece.returnPiecePositions(piece.id, piece.rotation);
+        double min = 0;
+        for (int a=0; a<pos.length; a++) {
+            // dropped amount = piece pos of tile (from bottom up) - highest point on that tile
+            double height = Consts.BoardHeight*2 - (pos[a].y + piece.pos.y) - heights[(int)(pos[a].x + piece.pos.x)];
+            if (height < min || a==0) {
+                min = height;
+            }
+        }
+        min--;
+        if (min == 0) {
+            return 0;
+        } else if (min < 0) {
+            return instantSoftDrop();
+        } else {
+            piece.pos.y += min;
+            return (int)min;
+        }
+    }
+
     public int hardDrop() { // huge line randomly is probably fixed but we will see
-        int droppedtiles = instantSoftDrop();
+        int droppedtiles = fastInstantSoftDrop();
         for (int a=0; a<Piece.returnPiecePositions(piece.id, piece.rotation).length; a++) {
             board.setTile(piece.id,PiecePos.Combine(Piece.returnPiecePositions(piece.id, piece.rotation)[a], piece.pos));
         }
@@ -315,7 +337,7 @@ public class Game {
                     this.moveLeft();
                     break;
                 case 's':
-                    this.instantSoftDrop();
+                    this.fastInstantSoftDrop();
                     break;
                 case 'd':
                     this.moveRight();
@@ -362,8 +384,14 @@ public class Game {
                     linesSent = 1;
                 } else if (combo >= 6 && combo <= 15) {
                     linesSent = 2;
-                } else if (combo >= 16) {
+                } else if (combo >= 16 && combo <= 39) {
                     linesSent = 3;
+                } else if (combo >= 40 && combo <= 89) {
+                    linesSent = 4;
+                } else if (combo >= 90 && combo <= 149) {
+                    linesSent = 5;
+                } else if (combo >= 150) {
+                    linesSent = 6;
                 }
             } else if (linesCleared == 2) {
                 linesSent = 1+combo/4; // 1 1 1 1 2 2 2 2 3 3 3 3 etc
