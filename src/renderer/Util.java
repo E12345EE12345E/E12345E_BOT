@@ -88,6 +88,9 @@ public class Util {
             (int)lerp((float)colorA.getGreen(), (float)colorB.getGreen(), t),
             (int)lerp((float)colorA.getBlue(), (float)colorB.getBlue(), t));
     }
+    public static Color colorAlpha(Color color, float alpha) {
+        return new Color(color.getRed(), color.getGreen(), color.getBlue(), (int)(alpha*255));
+    }
     // Intersection utils
     public static boolean circlesIntersect(Vec2 p1, double r1, Vec2 p2, double r2) {
         double dstSqr = Vec2.distanceSqr(p1, p2);

@@ -5,11 +5,12 @@ public class Consts {
     public static int MinQueueLength = 20;
     public static int DisplayQueueLength = 6;
     public static int GarbageCap = 8;
-    public static Boolean Use7Bag = true;
-    public static Boolean Bot1v1 = false;
-    public static Boolean Player1IsBot = false;
+    public static boolean Use7Bag = true;
+    public static boolean Bot1v1 = true;
+    public static boolean Player1IsBot = false;
+    public static boolean DoInvis = false;
 
-    public static Boolean PrintBotMoves = false; // will introduce more delay
+    public static boolean PrintBotMoves = false; // will introduce more delay
 
     public static PiecePos[][] WallKicksMain = { // [starting rotation state, test number] for cw, first one is ending rotation state for ccw
         {new PiecePos(-1,0), new PiecePos(-1,-1), new PiecePos(0,2), new PiecePos(-1,2)}, // 0

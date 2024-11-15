@@ -19,9 +19,10 @@ public class Renderer {
     private static BotThread bot;
     private static BotThread plr1bot;
     private static int garbagetimer;
-    private static int[] garbagePattern = {12};
+    private static int[] garbagePattern = {4};
     private static int garbagePatternDelay = 3000;
     private static int garbagePatternNum = 0;
+    private static int invistimer;
     private static boolean firsttick = true;
     private static boolean controlsettingmode;
     private static int controlsettingnum;
@@ -112,12 +113,35 @@ public class Renderer {
                     if (garbagePatternNum == garbagePattern.length) garbagePatternNum = 0;
                 }
             }
+            if (Consts.DoInvis) {
+                invistimer += currenttime-oldtime;
+            }
             if (Consts.Player1IsBot) {
+                /*try {
+                    File f = new File("C:/Users/ethan/OneDrive/Documents/GitHub/bot/tetris/src/localdata.txt");
+                    Scanner s = new Scanner(f);
+                    String a = s.next();
+                    s.close();
+                    int garb = Integer.parseInt(a.substring(0,1));
+                    int garbage = Integer.parseInt(a.substring(1));
+                    System.out.println(garbage);
+                    GarbageHandler.sendGarbage(new Game(), game, garbage);
+                    if (garbage>0) {
+                        FileWriter fw = new FileWriter(f);
+                        fw.write((game.mostRecentLinesSent>0?Math.min(game.mostRecentLinesSent+garb,9):"0") + "0");
+                        fw.close();
+                    } else if (game.mostRecentLinesSent>0) {
+                        FileWriter fw = new FileWriter(f);
+                        fw.write((game.mostRecentLinesSent>0?Math.min(game.mostRecentLinesSent+garb,9):"0") + "0");
+                        fw.close();
+                    }
+                    game.mostRecentLinesSent = 0;
+                } catch (IOException e) {}*/
                 if (plr1bot != null && !plr1bot.isAlive()) {
                     game.doMovement(plr1bot.retval, 1);
                     if (game.mostRecentLinesSent > 0) {
                         GarbageHandler.sendGarbage(game, Consts.Bot1v1?otherGame:new Game(), game.mostRecentLinesSent);
-                        game.mostRecentLinesSent = 0;
+                        //game.mostRecentLinesSent = 0;
                     }
                 }
                 if (plr1bot == null || !plr1bot.isAlive()) {
@@ -185,6 +209,7 @@ public class Renderer {
                         startTime = System.currentTimeMillis();
                         garbagePatternNum = 0;
                         garbagetimer = 0;
+                        invistimer = 0;
                         keysHeld.remove(i);
                     } else {
                         i++;
@@ -245,7 +270,18 @@ public class Renderer {
         for (int y=0; y < Consts.BoardHeight*2; y++) {
             for (int x=0; x < Consts.BoardWidth; x++) {
                 if (game.board.tileOccupied(x, y)) {
-                    drawTile(g, (int)(x+pos.x), (int)(y+pos.y)-Consts.BoardHeight, uwidth, getPieceColor(game.board.board[y][x]));
+                    if (Consts.DoInvis) {
+                        if (game.board.board[y][x] == 8) {
+                            drawTile(g, (int)(x+pos.x), (int)(y+pos.y)-Consts.BoardHeight, uwidth, getPieceColor(game.board.board[y][x]));
+                        } else {
+                            int ivt = invistimer % 5000;
+                            if (ivt > 4000) {
+                                drawTile(g, (int)(x+pos.x), (int)(y+pos.y)-Consts.BoardHeight, uwidth, Util.colorAlpha(getPieceColor(game.board.board[y][x]), 1-(float)(ivt-4000)/1000));
+                            }
+                        }
+                    } else {
+                        drawTile(g, (int)(x+pos.x), (int)(y+pos.y)-Consts.BoardHeight, uwidth, getPieceColor(game.board.board[y][x]));
+                    }
                 }
             }
         }
